@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Coroutine Downloader</string>
+    <string name="download_url">Download URL</string>
+    <string name="download">Download</string>
+    <string name="sample_url">http://25.io/toau/audio/sample.txt</string>
 </resources>

@@ -3,12 +3,12 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-  compileSdkVersion 29
-  buildToolsVersion "29.0.1"
+  compileSdkVersion 28
+  buildToolsVersion "28.0.3"
   defaultConfig {
     applicationId "com.app.nikhil.coroutinedownloader"
     minSdkVersion 21
-    targetSdkVersion 29
+    targetSdkVersion 28
     versionCode 1
     versionName "1.0"
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -29,6 +29,12 @@ dependencies {
   implementation coreDeps.androidKtxCore
   implementation coreDeps.constraintLayout
   implementation coreDeps.archComponents
+  implementation coreDeps.okio
+  implementation coreDeps.okhttp
+  implementation coreDeps.timber
+  implementation coreDeps.materialComponents
+  implementation coreDeps.coroutineCore
+  implementation coreDeps.coroutineAndroid
 
   testImplementation testDeps.junit
   androidTestImplementation testDeps.testRunner
