@@ -28,6 +28,7 @@ dependencies {
   implementation coreDeps.appCompat
   implementation coreDeps.androidKtxCore
   implementation coreDeps.constraintLayout
+  implementation coreDeps.recyclerView
   implementation coreDeps.archComponents
   implementation coreDeps.okio
   implementation coreDeps.okhttp

@@ -15,14 +15,14 @@ class FileUtils(private val context: Context) {
 
     fun getFile(url: String): File = File(context.getExternalFilesDir(null), getFileName(url))
 
-    private fun getFileName(url: String): String {
+    fun getFileName(url: String): String {
         val uri = URI.create(url)
         val path = uri.path
         val index = path.indexOfLast { it == '/' }
         if (index != -1) {
             return path.substring(index + 1)
         }
-        return ""
+        return "Noname"
     }
 
     private fun getFileExtension(url: String): String {

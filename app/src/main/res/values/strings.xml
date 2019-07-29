@@ -1,6 +1,8 @@
 <resources>
-    <string name="app_name">Coroutine Downloader</string>
-    <string name="download_url">Download URL</string>
-    <string name="download">Download</string>
-    <string name="sample_url">http://25.io/toau/audio/sample.txt</string>
+  <string name="app_name">Coroutine Downloader</string>
+  <string name="download_url">Download URL</string>
+  <string name="download">Download</string>
+  <string name="sample_url">https://sample-videos.com/img/Sample-jpg-image-5mb.jpg</string>
+  <string name="downloading">Downloading</string>
+  <string name="completed">Completed</string>
 </resources>

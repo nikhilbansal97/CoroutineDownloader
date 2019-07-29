@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".main.MainActivity"
     android:orientation="vertical"
-    android:padding="@dimen/dimen_12dp">
+    android:padding="@dimen/dimen_12dp"
+    tools:context=".main.MainActivity"
+    >
 
   <com.google.android.material.textfield.TextInputLayout
       android:id="@+id/textInputUrl"
@@ -19,7 +20,8 @@
     <com.google.android.material.textfield.TextInputEditText
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/sample_url"/>
+        android:text="@string/sample_url"
+        />
 
   </com.google.android.material.textfield.TextInputLayout>
 
@@ -27,10 +29,17 @@
       android:id="@+id/downloadButton"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:textSize="@dimen/dimen_16sp"
       android:layout_marginTop="@dimen/dimen_8dp"
-      android:text="@string/download"
       android:padding="@dimen/dimen_12dp"
-      style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+      android:text="@string/download"
+      android:textSize="@dimen/dimen_16sp"
+      style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+      />
+
+  <androidx.recyclerview.widget.RecyclerView
+      android:id="@+id/downloadItemsRecycler"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="@dimen/dimen_12dp"/>
 
 </LinearLayout>
