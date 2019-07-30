@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import okhttp3.*
 import okio.*
 import timber.log.Timber
+import java.io.BufferedInputStream
 import java.math.RoundingMode.CEILING
 import java.text.DecimalFormat
 
@@ -18,7 +19,6 @@ class Downloader(
 
   private val okHttpClient = OkHttpClient()
   private val fileUtils = FileUtils(context)
-  private val BUFFER_SIZE = 20L
   private val BYTES_CONVERTER = 0.000001
   private val percentageFormat = DecimalFormat("#.##").apply { roundingMode = CEILING }
 
@@ -49,7 +49,7 @@ class Downloader(
             val networkBufferedSource = body.source()
             // Read from the network and write in file.
             bufferedRead(
-                networkBufferedSource, fileBufferedSink, BUFFER_SIZE, body.contentLength(), channel
+                networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(), body.contentLength(), channel
             )
           } else {
             Timber.d("File Exists")
@@ -71,7 +71,6 @@ class Downloader(
     totalBytes: Long,
     channel: Channel<DownloadInfo>
   ) {
-    val buffer = Buffer()
     var bytesRead = 0L
     try {
       var noOfBytes = source.read(sink.buffer, bufferSize)
@@ -101,7 +100,6 @@ class Downloader(
     } finally {
       source.close()
       sink.close()
-      buffer.close()
     }
   }
 
