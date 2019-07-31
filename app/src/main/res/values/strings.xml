@@ -2,7 +2,9 @@
   <string name="app_name">Coroutine Downloader</string>
   <string name="download_url">Download URL</string>
   <string name="download">Download</string>
-  <string name="sample_url">https://sample-videos.com/img/Sample-jpg-image-5mb.jpg</string>
+  <string name="sample_url">https://www.xerox.com/downloads/usa/en/s/supp_lib_Helpful_Facts_About_Paper.pdf</string>
   <string name="downloading">Downloading</string>
   <string name="completed">Completed</string>
+  <string name="pause">Pause</string>
+  <string name="resume">Resume</string>
 </resources>

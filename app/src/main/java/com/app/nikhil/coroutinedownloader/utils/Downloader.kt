@@ -2,6 +2,8 @@ package com.app.nikhil.coroutinedownloader.utils
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.launch
@@ -10,6 +12,7 @@ import okio.*
 import timber.log.Timber
 import java.io.BufferedInputStream
 import java.math.RoundingMode.CEILING
+import java.nio.file.FileAlreadyExistsException
 import java.text.DecimalFormat
 
 class Downloader(
@@ -25,12 +28,12 @@ class Downloader(
   fun downloadFile(
     url: String,
     channel: Channel<DownloadInfo>
-  ) {
+  ): Job {
     val request = Request.Builder()
         .url(url)
         .build()
 
-    launch {
+    return launch {
       try {
         // Create a connection and get the details about the file.
         val response = okHttpClient.newCall(request)
@@ -40,23 +43,24 @@ class Downloader(
 
         // If the body of response is not empty
         response.body?.let { body ->
-          if (!file.exists() || file.length() == 0L) {
-            // The file needs to be downloaded from starting.
-            // Create a buffered output stream (BufferedSink) for the file.
-            val fileBufferedSink = file.sink()
-                .buffer()
-            // Get the buffered input stream (BufferedStream) for the file.
-            val networkBufferedSource = body.source()
-            // Read from the network and write in file.
-            bufferedRead(
-                networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(), body.contentLength(), channel
-            )
-          } else {
-            Timber.d("File Exists")
+          if (file.exists() && file.length() == body.contentLength()) {
+            throw FileExistsException()
           }
+          // Create a buffered output stream (BufferedSink) for the file.
+          val fileBufferedSink: BufferedSink = if (file.length() != 0L) {
+            file.appendingSink()
+                .buffer()
+          } else {
+            file.sink().buffer()
+          }
+          // Get the buffered input stream (BufferedStream) for the file.
+          val networkBufferedSource = body.source()
+          bufferedRead(
+            networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(), body.contentLength(), channel, file.length()
+          )
         }
       } catch (e: Exception) {
-        Timber.e(e)
+        throw e
       }
     }
   }
@@ -69,10 +73,12 @@ class Downloader(
     sink: BufferedSink,
     bufferSize: Long,
     totalBytes: Long,
-    channel: Channel<DownloadInfo>
+    channel: Channel<DownloadInfo>,
+    seek: Long = 0L
   ) {
-    var bytesRead = 0L
+    var bytesRead = seek
     try {
+      source.skip(seek)
       var noOfBytes = source.read(sink.buffer, bufferSize)
       while (noOfBytes != -1L) {
         bytesRead += noOfBytes
@@ -96,7 +102,7 @@ class Downloader(
         )
       }
     } catch (e: Exception) {
-      Timber.e(e)
+      throw e
     } finally {
       source.close()
       sink.close()

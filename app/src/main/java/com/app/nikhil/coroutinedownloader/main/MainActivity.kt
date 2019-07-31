@@ -8,6 +8,7 @@ import com.app.nikhil.coroutinedownloader.base.BaseActivity
 import com.app.nikhil.coroutinedownloader.utils.DownloadInfo
 import com.app.nikhil.coroutinedownloader.utils.DownloadItem
 import com.app.nikhil.coroutinedownloader.utils.Downloader
+import com.app.nikhil.coroutinedownloader.utils.FileExistsException
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.android.synthetic.main.activity_main.downloadButton
 import kotlinx.android.synthetic.main.activity_main.downloadItemsRecycler
@@ -22,7 +23,7 @@ class MainActivity : BaseActivity() {
 
   private val downloadScope = CoroutineScope(Dispatchers.IO)
   private val downloader = Downloader(downloadScope, this)
-  private val downloadItemAdapter = DownloadItemRecyclerAdapter(arrayListOf())
+  private val downloadItemAdapter = DownloadItemRecyclerAdapter(arrayListOf(), downloader)
   private val fileUtils = FileUtils(this)
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,8 +43,12 @@ class MainActivity : BaseActivity() {
   private fun downloadResourceFromURL(url: String) {
     val channel = Channel<DownloadInfo>()
     val downloadItem = DownloadItem(fileUtils.getFileName(url), url, channel)
-    downloadItemAdapter.addItem(downloadItem)
-    downloader.downloadFile(url, channel)
+    try {
+      downloadItem.job = downloader.downloadFile(url, channel)
+      downloadItemAdapter.addItem(downloadItem)
+    } catch (e: FileExistsException) {
+      showDialog(e.message)
+    }
   }
 
   private fun initRecyclerView() {

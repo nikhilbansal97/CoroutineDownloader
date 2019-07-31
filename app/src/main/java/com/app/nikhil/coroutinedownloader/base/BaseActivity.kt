@@ -1,9 +1,11 @@
 package com.app.nikhil.coroutinedownloader.base
 
+import android.content.DialogInterface
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.os.Environment
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.app.nikhil.coroutinedownloader.utils.Constants
@@ -34,5 +36,11 @@ abstract class BaseActivity : AppCompatActivity() {
 
   private fun externalStoragePresent(): Boolean {
     return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
+  }
+
+  fun showDialog(msg: String) {
+    AlertDialog.Builder(this)
+      .setMessage(msg)
+      .show()
   }
 }
