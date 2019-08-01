@@ -2,23 +2,28 @@ package com.app.nikhil.coroutinedownloader.utils
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.launch
-import okhttp3.*
-import okio.*
-import timber.log.Timber
-import java.io.BufferedInputStream
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okio.BufferedSink
+import okio.BufferedSource
+import okio.appendingSink
+import okio.buffer
+import okio.sink
 import java.math.RoundingMode.CEILING
-import java.nio.file.FileAlreadyExistsException
 import java.text.DecimalFormat
+import kotlin.coroutines.CoroutineContext
 
 class Downloader(
-  scope: CoroutineScope,
-  context: Context
-) : CoroutineScope by scope {
+  context: Context,
+  override val coroutineContext: CoroutineContext = Dispatchers.IO
+) : CoroutineScope {
+
+  private val downloadMap: MutableMap<String, Pair<Job, Channel<DownloadInfo>>> = mutableMapOf()
 
   private val okHttpClient = OkHttpClient()
   private val fileUtils = FileUtils(context)
@@ -26,14 +31,14 @@ class Downloader(
   private val percentageFormat = DecimalFormat("#.##").apply { roundingMode = CEILING }
 
   fun downloadFile(
-    url: String,
-    channel: Channel<DownloadInfo>
+    url: String
   ): Job {
     val request = Request.Builder()
         .url(url)
         .build()
 
-    return launch {
+    val channel = Channel<DownloadInfo>()
+    val job = launch {
       try {
         // Create a connection and get the details about the file.
         val response = okHttpClient.newCall(request)
@@ -63,6 +68,23 @@ class Downloader(
         throw e
       }
     }
+    downloadMap[url] = Pair(job, channel)
+    return job
+  }
+
+  fun pauseDownload(url: String) {
+    downloadMap[url]?.let { pair ->
+      pair.first.cancel()
+      pair.second.close()
+    }
+  }
+
+  fun resumeDownload(url: String) {
+    downloadFile(url)
+  }
+
+  fun getChannelForURL(url: String): Channel<DownloadInfo>? {
+    return downloadMap[url]?.second
   }
 
   /*
@@ -80,7 +102,7 @@ class Downloader(
     try {
       source.skip(seek)
       var noOfBytes = source.read(sink.buffer, bufferSize)
-      while (noOfBytes != -1L) {
+      while (noOfBytes != -1L && !channel.isClosedForSend) {
         bytesRead += noOfBytes
         channel.sendBlocking(
             DownloadInfo(
@@ -91,7 +113,7 @@ class Downloader(
         )
         noOfBytes = source.read(sink.buffer, bufferSize)
       }
-      if (bytesRead != totalBytes) {
+      if (bytesRead != totalBytes  && !channel.isClosedForSend) {
         bytesRead = source.read(sink.buffer, totalBytes - bytesRead)
         channel.sendBlocking(
             DownloadInfo(
@@ -114,5 +136,7 @@ class Downloader(
     totalBytes: Long
   ): String = percentageFormat.format((bytesRead.toDouble() / totalBytes.toDouble()) * 100)
 
-  private fun convertBytesToMB(bytes: Long): String = percentageFormat.format(bytes * BYTES_CONVERTER)
+  private fun convertBytesToMB(bytes: Long): String =
+    percentageFormat.format(bytes * BYTES_CONVERTER)
+
 }

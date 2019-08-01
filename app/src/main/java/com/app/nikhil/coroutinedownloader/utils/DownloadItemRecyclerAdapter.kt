@@ -7,16 +7,20 @@ import androidx.appcompat.widget.AppCompatButton
 import androidx.recyclerview.widget.RecyclerView
 import com.app.nikhil.coroutinedownloader.R.layout
 import com.app.nikhil.coroutinedownloader.R.string
-import com.app.nikhil.coroutinedownloader.main.MainActivity
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter.DownloadItemViewHolder
-import kotlinx.android.synthetic.main.layout_download_item.view.*
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemName
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemProgress
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemState
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadSizeStatus
+import kotlinx.android.synthetic.main.layout_download_item.view.pauseResumeButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+@ExperimentalCoroutinesApi
 class DownloadItemRecyclerAdapter(
   private val downloadItems: ArrayList<DownloadItem>,
   private val downloader: Downloader
@@ -52,50 +56,46 @@ class DownloadItemRecyclerAdapter(
   inner class DownloadItemViewHolder(private val item: View) : RecyclerView.ViewHolder(item) {
     fun bind(downloadItem: DownloadItem) {
       item.downloadItemName.text = downloadItem.fileName
-      setPauseResumeListener(downloadItem)
-      consumeDownloadProgressChannel(downloadItem)
+      setPauseResumeListener(downloadItem.url)
+      consumeDownloadProgressChannel(downloadItem.url)
     }
 
-    private fun consumeDownloadProgressChannel(downloadItem: DownloadItem) {
+    @ExperimentalCoroutinesApi
+    private fun consumeDownloadProgressChannel(url: String) {
       try {
         mainScope.launch {
-          downloadItem.channel.consumeEach { downloadInfo ->
-            item.downloadItemProgress.text = "${downloadInfo.percentage}%"
-            item.downloadSizeStatus.text = "${downloadInfo.bytesDownloaded}MB /${downloadInfo.totalBytes}MB"
-            if (downloadInfo.percentage.toDouble() != 100.0) {
-              item.downloadItemState.text = item.context.getString(string.downloading)
-            } else {
-              item.downloadItemState.text = item.context.getString(string.completed)
-              downloadItem.channel.close()
-              item.pauseResumeButton.isEnabled = false
-            }
-          }
+          downloader.getChannelForURL(url)
+              ?.consumeEach { downloadInfo ->
+                item.downloadItemProgress.text = "${downloadInfo.percentage}%"
+                item.downloadSizeStatus.text =
+                  "${downloadInfo.bytesDownloaded}MB /${downloadInfo.totalBytes}MB"
+                if (downloadInfo.percentage.toDouble() != 100.0) {
+                  item.downloadItemState.text = item.context.getString(string.downloading)
+                } else {
+                  item.downloadItemState.text = item.context.getString(string.completed)
+                  downloader.getChannelForURL(url)
+                      ?.close()
+                  item.pauseResumeButton.isEnabled = false
+                }
+              }
         }
       } catch (e: Exception) {
         Timber.e(e)
-        downloadItem.channel.close(e)
+        downloader.getChannelForURL(url)
+            ?.close()
       }
     }
 
-    private fun setPauseResumeListener(downloadItem: DownloadItem) {
+    private fun setPauseResumeListener(url: String) {
       item.pauseResumeButton.setOnClickListener {
         (it as AppCompatButton).let { button ->
           if (button.text.toString() == it.context.getString(string.pause)) {
-            downloadItem.pause()
+            downloader.pauseDownload(url)
             button.text = it.context.getString(string.resume)
           } else {
             button.text = it.context.getString(string.pause)
-            downloadItem.apply {
-              channel = Channel()
-              try {
-                job = downloader.downloadFile(url, channel)
-              } catch (e: FileExistsException) {
-                if (item.context is MainActivity) {
-                  (item.context as MainActivity).showDialog(e.message)
-                }
-              }
-            }
-            consumeDownloadProgressChannel(downloadItem)
+            downloader.resumeDownload(url)
+            consumeDownloadProgressChannel(url)
           }
         }
       }

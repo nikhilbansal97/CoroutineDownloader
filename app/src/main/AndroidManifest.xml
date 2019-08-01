@@ -16,7 +16,8 @@
       android:usesCleartextTraffic="true"
       android:theme="@style/AppTheme"
       tools:ignore="GoogleAppIndexingWarning">
-    <activity android:name=".main.MainActivity">
+    <activity android:name=".main.MainActivity"
+        android:windowSoftInputMode="stateHidden">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
