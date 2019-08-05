@@ -4,23 +4,32 @@ import android.os.Bundle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.app.nikhil.coroutinedownloader.R
 import com.app.nikhil.coroutinedownloader.base.BaseActivity
+import com.app.nikhil.coroutinedownloader.downloadutils.DownloaderScope
 import com.app.nikhil.coroutinedownloader.utils.DownloadItem
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
-import com.app.nikhil.coroutinedownloader.utils.Downloader
 import com.app.nikhil.coroutinedownloader.utils.FileExistsException
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.android.synthetic.main.activity_main.downloadButton
 import kotlinx.android.synthetic.main.activity_main.downloadItemsRecycler
 import kotlinx.android.synthetic.main.activity_main.textInputUrl
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import timber.log.Timber
+import javax.inject.Inject
 
-class MainActivity : BaseActivity() {
+@ExperimentalCoroutinesApi
+class MainActivity : BaseActivity<MainViewModel>() {
+
+  override fun getViewModelClass(): Class<MainViewModel> = MainViewModel::class.java
 
   override fun getLayoutId(): Int = R.layout.activity_main
 
-  private val downloader = Downloader( this)
-  private val fileUtils = FileUtils(this)
-  private val downloadItemAdapter = DownloadItemRecyclerAdapter(arrayListOf(), downloader)
+  @Inject
+  lateinit var downloader: DownloaderScope
+
+  @Inject
+  lateinit var fileUtils: FileUtils
+
+  private lateinit var downloadItemAdapter: DownloadItemRecyclerAdapter
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -49,6 +58,7 @@ class MainActivity : BaseActivity() {
   }
 
   private fun initRecyclerView() {
+    downloadItemAdapter = DownloadItemRecyclerAdapter(arrayListOf(), downloader)
     downloadItemsRecycler.apply {
       adapter = downloadItemAdapter
       layoutManager = LinearLayoutManager(this@MainActivity)

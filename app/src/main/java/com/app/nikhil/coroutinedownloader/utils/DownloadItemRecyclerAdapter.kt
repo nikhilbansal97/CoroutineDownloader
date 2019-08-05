@@ -7,6 +7,7 @@ import androidx.appcompat.widget.AppCompatButton
 import androidx.recyclerview.widget.RecyclerView
 import com.app.nikhil.coroutinedownloader.R.layout
 import com.app.nikhil.coroutinedownloader.R.string
+import com.app.nikhil.coroutinedownloader.downloadutils.DownloaderScope
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter.DownloadItemViewHolder
 import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemName
 import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemProgress
@@ -23,7 +24,7 @@ import timber.log.Timber
 @ExperimentalCoroutinesApi
 class DownloadItemRecyclerAdapter(
   private val downloadItems: ArrayList<DownloadItem>,
-  private val downloader: Downloader
+  private val downloaderScope: DownloaderScope
 ) : RecyclerView.Adapter<DownloadItemViewHolder>() {
 
   private val mainScope = CoroutineScope(Dispatchers.Main)
@@ -64,7 +65,7 @@ class DownloadItemRecyclerAdapter(
     private fun consumeDownloadProgressChannel(url: String) {
       try {
         mainScope.launch {
-          downloader.getChannelForURL(url)
+          downloaderScope.getChannelForURL(url)
               ?.consumeEach { downloadInfo ->
                 item.downloadItemProgress.text = "${downloadInfo.percentage}%"
                 item.downloadSizeStatus.text =
@@ -73,7 +74,7 @@ class DownloadItemRecyclerAdapter(
                   item.downloadItemState.text = item.context.getString(string.downloading)
                 } else {
                   item.downloadItemState.text = item.context.getString(string.completed)
-                  downloader.getChannelForURL(url)
+                  downloaderScope.getChannelForURL(url)
                       ?.close()
                   item.pauseResumeButton.isEnabled = false
                 }
@@ -81,7 +82,7 @@ class DownloadItemRecyclerAdapter(
         }
       } catch (e: Exception) {
         Timber.e(e)
-        downloader.getChannelForURL(url)
+        downloaderScope.getChannelForURL(url)
             ?.close()
       }
     }
@@ -90,11 +91,11 @@ class DownloadItemRecyclerAdapter(
       item.pauseResumeButton.setOnClickListener {
         (it as AppCompatButton).let { button ->
           if (button.text.toString() == it.context.getString(string.pause)) {
-            downloader.pauseDownload(url)
+            downloaderScope.pauseDownload(url)
             button.text = it.context.getString(string.resume)
           } else {
             button.text = it.context.getString(string.pause)
-            downloader.resumeDownload(url)
+            downloaderScope.downloadFile(url)
             consumeDownloadProgressChannel(url)
           }
         }

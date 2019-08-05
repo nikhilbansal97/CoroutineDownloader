@@ -1,8 +1,12 @@
-package com.app.nikhil.coroutinedownloader.utils
+package com.app.nikhil.coroutinedownloader.downloadutils
 
 import android.content.Context
+import com.app.nikhil.coroutinedownloader.utils.DownloadInfo
+import com.app.nikhil.coroutinedownloader.utils.FileExistsException
+import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.sendBlocking
@@ -18,7 +22,7 @@ import java.math.RoundingMode.CEILING
 import java.text.DecimalFormat
 import kotlin.coroutines.CoroutineContext
 
-class Downloader(
+class DownloaderScope(
   context: Context,
   override val coroutineContext: CoroutineContext = Dispatchers.IO
 ) : CoroutineScope {
@@ -30,9 +34,7 @@ class Downloader(
   private val BYTES_CONVERTER = 0.000001
   private val percentageFormat = DecimalFormat("#.##").apply { roundingMode = CEILING }
 
-  fun downloadFile(
-    url: String
-  ): Job {
+  @ExperimentalCoroutinesApi fun downloadFile(url: String) {
     val request = Request.Builder()
         .url(url)
         .build()
@@ -52,16 +54,17 @@ class Downloader(
             throw FileExistsException()
           }
           // Create a buffered output stream (BufferedSink) for the file.
-          val fileBufferedSink: BufferedSink = if (file.length() != 0L) {
-            file.appendingSink()
+          val fileBufferedSink: BufferedSink = when {
+            file.length() != 0L -> file.appendingSink()
                 .buffer()
-          } else {
-            file.sink().buffer()
+            else -> file.sink()
+                .buffer()
           }
           // Get the buffered input stream (BufferedStream) for the file.
           val networkBufferedSource = body.source()
           bufferedRead(
-            networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(), body.contentLength(), channel, file.length()
+              networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(),
+              body.contentLength(), channel, file.length(), url
           )
         }
       } catch (e: Exception) {
@@ -69,7 +72,6 @@ class Downloader(
       }
     }
     downloadMap[url] = Pair(job, channel)
-    return job
   }
 
   fun pauseDownload(url: String) {
@@ -79,10 +81,6 @@ class Downloader(
     }
   }
 
-  fun resumeDownload(url: String) {
-    downloadFile(url)
-  }
-
   fun getChannelForURL(url: String): Channel<DownloadInfo>? {
     return downloadMap[url]?.second
   }
@@ -90,44 +88,53 @@ class Downloader(
   /*
   * Read from a BufferedSource and write it in BufferedSink
   */
+  @ExperimentalCoroutinesApi
   private fun bufferedRead(
     source: BufferedSource,
     sink: BufferedSink,
     bufferSize: Long,
     totalBytes: Long,
     channel: Channel<DownloadInfo>,
-    seek: Long = 0L
+    seek: Long = 0L,
+    url: String
   ) {
     var bytesRead = seek
     try {
       source.skip(seek)
       var noOfBytes = source.read(sink.buffer, bufferSize)
-      while (noOfBytes != -1L && !channel.isClosedForSend) {
+      while (noOfBytes != -1L) {
         bytesRead += noOfBytes
-        channel.sendBlocking(
-            DownloadInfo(
-                percentage = getPercentage(bytesRead, totalBytes),
-                bytesDownloaded = convertBytesToMB(bytesRead),
-                totalBytes = convertBytesToMB(totalBytes)
-            )
-        )
         noOfBytes = source.read(sink.buffer, bufferSize)
+        publishUpdates(channel, bytesRead, totalBytes, url)
       }
-      if (bytesRead != totalBytes  && !channel.isClosedForSend) {
+      if (bytesRead != totalBytes) {
         bytesRead = source.read(sink.buffer, totalBytes - bytesRead)
-        channel.sendBlocking(
-            DownloadInfo(
-                percentage = getPercentage(bytesRead, totalBytes),
-                bytesDownloaded = convertBytesToMB(bytesRead),
-                totalBytes = convertBytesToMB(totalBytes)
-            )
-        )
+        publishUpdates(channel, bytesRead, totalBytes, url)
       }
     } catch (e: Exception) {
       throw e
     } finally {
       source.close()
       sink.close()
+    }
+  }
+
+  @ExperimentalCoroutinesApi
+  private fun publishUpdates(
+    channel: Channel<DownloadInfo>,
+    bytesRead: Long,
+    totalBytes: Long,
+    url: String
+  ) {
+    if (!channel.isClosedForSend) {
+      channel.sendBlocking(
+          DownloadInfo(
+              url = url,
+              percentage = getPercentage(bytesRead, totalBytes),
+              bytesDownloaded = convertBytesToMB(bytesRead),
+              totalBytes = convertBytesToMB(totalBytes)
+          )
+      )
     }
   }
 

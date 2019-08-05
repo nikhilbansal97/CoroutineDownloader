@@ -6,15 +6,26 @@ import android.os.Bundle
 import android.os.Environment
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProviders
 import com.app.nikhil.coroutinedownloader.utils.Constants.REQUEST_CODE_EXTERNAL_PERMISSIONS
+import dagger.android.AndroidInjection
 
-abstract class BaseActivity : AppCompatActivity() {
+abstract class BaseActivity<VM : BaseViewModel> : AppCompatActivity() {
 
   abstract fun getLayoutId(): Int
+
+  abstract fun getViewModelClass(): Class<VM>
+
+  lateinit var viewModel: VM
+  lateinit var viewModelFactory: ViewModelProvider.Factory
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(getLayoutId())
+
+    AndroidInjection.inject(this)
+    viewModel = ViewModelProviders.of(this, viewModelFactory).get(getViewModelClass())
 
     if (externalStoragePresent()) {
       requestStoragePermission()

@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
 
 android {
   compileSdkVersion 28
@@ -30,12 +31,21 @@ dependencies {
   implementation coreDeps.constraintLayout
   implementation coreDeps.recyclerView
   implementation coreDeps.archComponents
+  implementation coreDeps.materialComponents
+
   implementation coreDeps.okio
   implementation coreDeps.okhttp
   implementation coreDeps.timber
-  implementation coreDeps.materialComponents
+
   implementation coreDeps.coroutineCore
   implementation coreDeps.coroutineAndroid
+
+  implementation coreDeps.dagger
+  implementation coreDeps.daggerAndroid
+  implementation coreDeps.daggerSupport
+  implementation coreDeps.daggerSupport
+  kapt coreDeps.daggerAndroidProcessor
+  kapt coreDeps.daggerProcessor
 
   testImplementation testDeps.junit
   androidTestImplementation testDeps.testRunner
