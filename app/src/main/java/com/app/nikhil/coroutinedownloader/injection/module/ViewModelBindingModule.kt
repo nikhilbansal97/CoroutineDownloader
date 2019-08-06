@@ -2,9 +2,9 @@ package com.app.nikhil.coroutinedownloader.injection.module
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.app.nikhil.coroutinedownloader.base.ViewModelFactory
 import com.app.nikhil.coroutinedownloader.injection.scope.ViewModelKey
-import com.app.nikhil.coroutinedownloader.main.MainViewModel
+import com.app.nikhil.coroutinedownloader.ui.base.ViewModelFactory
+import com.app.nikhil.coroutinedownloader.ui.main.MainViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap

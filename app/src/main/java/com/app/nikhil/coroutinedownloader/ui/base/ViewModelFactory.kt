@@ -1,4 +1,4 @@
-package com.app.nikhil.coroutinedownloader.base
+package com.app.nikhil.coroutinedownloader.ui.base
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -7,7 +7,7 @@ import javax.inject.Provider
 
 class ViewModelFactory @Inject constructor(
   private val map: Map<Class<out ViewModel>,
-      @JvmSuppressWildcards Provider<out ViewModel>>
+      @JvmSuppressWildcards Provider<ViewModel>>
 ) :
     ViewModelProvider.Factory {
 

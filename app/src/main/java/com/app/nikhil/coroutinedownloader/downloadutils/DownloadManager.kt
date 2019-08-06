@@ -1,7 +1,6 @@
 package com.app.nikhil.coroutinedownloader.downloadutils
 
-import android.content.Context
-import com.app.nikhil.coroutinedownloader.utils.DownloadInfo
+import com.app.nikhil.coroutinedownloader.entity.DownloadInfo
 import com.app.nikhil.coroutinedownloader.utils.FileExistsException
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
@@ -9,7 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -18,23 +16,39 @@ import okio.BufferedSource
 import okio.appendingSink
 import okio.buffer
 import okio.sink
+import timber.log.Timber
 import java.math.RoundingMode.CEILING
 import java.text.DecimalFormat
+import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 
-class DownloaderScope(
-  context: Context,
+@ExperimentalCoroutinesApi
+class DownloadManager @Inject constructor(
+  private val okHttpClient: OkHttpClient,
+  private val fileUtils: FileUtils,
   override val coroutineContext: CoroutineContext = Dispatchers.IO
-) : CoroutineScope {
+) : CoroutineScope, Downloader {
+
+  companion object {
+    private const val BYTES_MULTIPLIER = 0.000001
+    private const val DECIMAL_PERCENT_FORMAT = "#.##"
+  }
+
+  private val percentageFormat =
+    DecimalFormat(DECIMAL_PERCENT_FORMAT).apply { roundingMode = CEILING }
 
   private val downloadMap: MutableMap<String, Pair<Job, Channel<DownloadInfo>>> = mutableMapOf()
 
-  private val okHttpClient = OkHttpClient()
-  private val fileUtils = FileUtils(context)
-  private val BYTES_CONVERTER = 0.000001
-  private val percentageFormat = DecimalFormat("#.##").apply { roundingMode = CEILING }
+  // Pause the Queue when the service is destroyed.
+  override fun pauseQueue() {}
 
-  @ExperimentalCoroutinesApi fun downloadFile(url: String) {
+  // Resume the Queue when the service is started.
+  override fun resumeQueue() {}
+
+  // Dispose the resources occupied by the downloader.
+  override fun dispose() {}
+
+  override fun download(url: String) {
     val request = Request.Builder()
         .url(url)
         .build()
@@ -63,7 +77,7 @@ class DownloaderScope(
           // Get the buffered input stream (BufferedStream) for the file.
           val networkBufferedSource = body.source()
           bufferedRead(
-              networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(),
+              networkBufferedSource, fileBufferedSink, 40.toLong(),
               body.contentLength(), channel, file.length(), url
           )
         }
@@ -74,22 +88,21 @@ class DownloaderScope(
     downloadMap[url] = Pair(job, channel)
   }
 
-  fun pauseDownload(url: String) {
+  override fun pause(url: String) {
     downloadMap[url]?.let { pair ->
       pair.first.cancel()
       pair.second.close()
     }
   }
 
-  fun getChannelForURL(url: String): Channel<DownloadInfo>? {
+  override fun getChannel(url: String): Channel<DownloadInfo>? {
     return downloadMap[url]?.second
   }
 
   /*
   * Read from a BufferedSource and write it in BufferedSink
   */
-  @ExperimentalCoroutinesApi
-  private fun bufferedRead(
+  private suspend fun bufferedRead(
     source: BufferedSource,
     sink: BufferedSink,
     bufferSize: Long,
@@ -112,6 +125,7 @@ class DownloaderScope(
         publishUpdates(channel, bytesRead, totalBytes, url)
       }
     } catch (e: Exception) {
+      Timber.e(e)
       throw e
     } finally {
       source.close()
@@ -119,22 +133,26 @@ class DownloaderScope(
     }
   }
 
-  @ExperimentalCoroutinesApi
-  private fun publishUpdates(
+  private suspend fun publishUpdates(
     channel: Channel<DownloadInfo>,
     bytesRead: Long,
     totalBytes: Long,
     url: String
   ) {
-    if (!channel.isClosedForSend) {
-      channel.sendBlocking(
-          DownloadInfo(
-              url = url,
-              percentage = getPercentage(bytesRead, totalBytes),
-              bytesDownloaded = convertBytesToMB(bytesRead),
-              totalBytes = convertBytesToMB(totalBytes)
-          )
-      )
+    try {
+      if (!channel.isClosedForSend) {
+        channel.send(
+            DownloadInfo(
+                url = url,
+                percentage = getPercentage(bytesRead, totalBytes),
+                bytesDownloaded = convertBytesToMB(bytesRead),
+                totalBytes = convertBytesToMB(totalBytes)
+            )
+        )
+      }
+    } catch (e: Exception) {
+      Timber.e(e)
+      throw e
     }
   }
 
@@ -144,6 +162,6 @@ class DownloaderScope(
   ): String = percentageFormat.format((bytesRead.toDouble() / totalBytes.toDouble()) * 100)
 
   private fun convertBytesToMB(bytes: Long): String =
-    percentageFormat.format(bytes * BYTES_CONVERTER)
+    percentageFormat.format(bytes * BYTES_MULTIPLIER)
 
 }

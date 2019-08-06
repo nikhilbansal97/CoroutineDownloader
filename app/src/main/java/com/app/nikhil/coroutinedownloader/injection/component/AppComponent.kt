@@ -2,7 +2,9 @@ package com.app.nikhil.coroutinedownloader.injection.component
 
 import android.content.Context
 import com.app.nikhil.coroutinedownloader.MainApplication
+import com.app.nikhil.coroutinedownloader.injection.module.ActivityBindingModule
 import com.app.nikhil.coroutinedownloader.injection.module.AppModule
+import com.app.nikhil.coroutinedownloader.injection.module.ServiceBindingModule
 import com.app.nikhil.coroutinedownloader.injection.module.ViewModelBindingModule
 import dagger.BindsInstance
 import dagger.Component
@@ -11,7 +13,14 @@ import dagger.android.support.AndroidSupportInjectionModule
 import javax.inject.Singleton
 
 @Singleton
-@Component(modules = [AndroidSupportInjectionModule::class, AppModule::class, ViewModelBindingModule::class])
+@Component(
+    modules = [
+      AndroidSupportInjectionModule::class,
+      AppModule::class,
+      ViewModelBindingModule::class,
+      ActivityBindingModule::class,
+      ServiceBindingModule::class]
+)
 interface AppComponent : AndroidInjector<MainApplication> {
 
   /*

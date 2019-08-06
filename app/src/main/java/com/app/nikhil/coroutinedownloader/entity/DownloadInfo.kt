@@ -1,9 +1,4 @@
-package com.app.nikhil.coroutinedownloader.utils
-
-data class DownloadItem(
-  val fileName: String,
-  val url: String
-)
+package com.app.nikhil.coroutinedownloader.entity
 
 data class DownloadInfo(
   val url: String,

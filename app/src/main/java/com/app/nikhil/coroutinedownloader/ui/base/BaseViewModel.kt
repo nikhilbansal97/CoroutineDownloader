@@ -1,4 +1,4 @@
-package com.app.nikhil.coroutinedownloader.base
+package com.app.nikhil.coroutinedownloader.ui.base
 
 import androidx.lifecycle.ViewModel
 

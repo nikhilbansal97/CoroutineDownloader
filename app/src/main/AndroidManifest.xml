@@ -16,13 +16,14 @@
       android:usesCleartextTraffic="true"
       android:theme="@style/AppTheme"
       tools:ignore="GoogleAppIndexingWarning">
-    <activity android:name=".main.MainActivity"
+    <activity android:name="com.app.nikhil.coroutinedownloader.ui.main.MainActivity"
         android:windowSoftInputMode="stateHidden">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <service android:name=".downloadutils.DownloadService"/>
   </application>
 
 </manifest>

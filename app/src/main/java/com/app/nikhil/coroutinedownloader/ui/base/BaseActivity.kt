@@ -1,35 +1,44 @@
-package com.app.nikhil.coroutinedownloader.base
+package com.app.nikhil.coroutinedownloader.ui.base
 
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
 import android.os.Environment
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
+import androidx.databinding.library.baseAdapters.BR
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 import com.app.nikhil.coroutinedownloader.utils.Constants.REQUEST_CODE_EXTERNAL_PERMISSIONS
 import dagger.android.AndroidInjection
+import dagger.android.support.DaggerAppCompatActivity
+import javax.inject.Inject
 
-abstract class BaseActivity<VM : BaseViewModel> : AppCompatActivity() {
+abstract class BaseActivity<VM : BaseViewModel, B: ViewDataBinding> : DaggerAppCompatActivity() {
 
   abstract fun getLayoutId(): Int
 
   abstract fun getViewModelClass(): Class<VM>
 
+  lateinit var binding: B
   lateinit var viewModel: VM
+  @Inject
   lateinit var viewModelFactory: ViewModelProvider.Factory
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    setContentView(getLayoutId())
-
     AndroidInjection.inject(this)
-    viewModel = ViewModelProviders.of(this, viewModelFactory).get(getViewModelClass())
-
+    initUI()
     if (externalStoragePresent()) {
       requestStoragePermission()
     }
+  }
+
+  private fun initUI() {
+    viewModel = ViewModelProviders.of(this, viewModelFactory).get(getViewModelClass())
+    binding = DataBindingUtil.setContentView(this, getLayoutId())
+    binding.setVariable(BR.viewModel, viewModel)
   }
 
   private fun requestStoragePermission() {
