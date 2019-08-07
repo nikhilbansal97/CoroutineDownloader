@@ -1,4 +1,4 @@
-package com.app.nikhil.coroutinedownloader.utils
+package com.app.nikhil.coroutinedownloader.exceptions
 
 class FileExistsException : Exception() {
   override val message: String

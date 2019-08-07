@@ -18,7 +18,7 @@ class DownloadService : DaggerIntentService("DownloadService") {
   }
 
   override fun onDestroy() {
-    downloader.dispose()
+    downloader.disposeAll()
     super.onDestroy()
   }
 }

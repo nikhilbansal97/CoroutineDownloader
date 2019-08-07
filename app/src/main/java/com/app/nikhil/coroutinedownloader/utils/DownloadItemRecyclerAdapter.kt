@@ -92,7 +92,7 @@ class DownloadItemRecyclerAdapter(
       item.pauseResumeButton.setOnClickListener {
         (it as AppCompatButton).let { button ->
           if (button.text.toString() == it.context.getString(string.pause)) {
-            downloadManager.pause(url)
+            mainScope.launch { downloadManager.pause(url) }
             button.text = it.context.getString(string.resume)
           } else {
             button.text = it.context.getString(string.pause)

@@ -3,11 +3,14 @@ package com.app.nikhil.coroutinedownloader.injection.module
 import android.content.Context
 import com.app.nikhil.coroutinedownloader.downloadutils.DownloadManager
 import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
+import com.app.nikhil.coroutinedownloader.injection.qualifier.IOScope
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import com.app.nikhil.coroutinedownloader.utils.NotificationUtils
 import dagger.Module
 import dagger.Provides
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
@@ -38,6 +41,13 @@ class AppModule {
   @Singleton
   fun provideDownloader(
     okHttpClient: OkHttpClient,
-    fileUtils: FileUtils
-  ): Downloader = DownloadManager(okHttpClient, fileUtils)
+    fileUtils: FileUtils,
+    @IOScope scope: CoroutineScope
+  ): Downloader = DownloadManager(okHttpClient, fileUtils, scope)
+
+  @Provides
+  @IOScope
+  fun provideIOCoroutineScope(): CoroutineScope {
+    return CoroutineScope(Dispatchers.IO)
+  }
 }

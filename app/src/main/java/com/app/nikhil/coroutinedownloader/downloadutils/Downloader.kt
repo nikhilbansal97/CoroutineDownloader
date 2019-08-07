@@ -4,10 +4,11 @@ import com.app.nikhil.coroutinedownloader.entity.DownloadInfo
 import kotlinx.coroutines.channels.Channel
 
 interface Downloader {
+  suspend fun pause(url: String)
+  suspend fun disposeDownload(url: String)
   fun download(url: String)
-  fun pause(url: String)
   fun pauseQueue()
   fun resumeQueue()
-  fun dispose()
+  fun disposeAll()
   fun getChannel(url: String): Channel<DownloadInfo>?
 }

@@ -9,9 +9,9 @@ import com.app.nikhil.coroutinedownloader.R
 import com.app.nikhil.coroutinedownloader.databinding.ActivityMainBinding
 import com.app.nikhil.coroutinedownloader.downloadutils.DownloadService
 import com.app.nikhil.coroutinedownloader.entity.DownloadItem
+import com.app.nikhil.coroutinedownloader.exceptions.FileExistsException
 import com.app.nikhil.coroutinedownloader.ui.base.BaseActivity
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
-import com.app.nikhil.coroutinedownloader.utils.FileExistsException
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.android.synthetic.main.activity_main.downloadItemsRecycler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
