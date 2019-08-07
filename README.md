@@ -4,7 +4,9 @@ Download Manager written purely in Kotlin. The app uses coroutines and channels 
 
 ## Screenshot
 
-![Screenshot](images/screenshot.png)
+<img align="left" src="images/paused.png">
+<img align="center" src="images/completed.png">
+
 
 ## License
 
