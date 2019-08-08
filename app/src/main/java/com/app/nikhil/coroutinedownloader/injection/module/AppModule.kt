@@ -1,9 +1,12 @@
 package com.app.nikhil.coroutinedownloader.injection.module
 
 import android.content.Context
+import androidx.room.Room
+import com.app.nikhil.coroutinedownloader.database.DownloadDatabase
 import com.app.nikhil.coroutinedownloader.downloadutils.DownloadManager
 import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
 import com.app.nikhil.coroutinedownloader.injection.qualifier.IOScope
+import com.app.nikhil.coroutinedownloader.utils.Constants
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import com.app.nikhil.coroutinedownloader.utils.NotificationUtils
@@ -24,6 +27,12 @@ class AppModule {
   @Provides
   @Singleton
   fun provideOkHttpClient(): OkHttpClient = OkHttpClient()
+
+  @Provides
+  @Singleton
+  fun provideDatabase(context: Context): DownloadDatabase {
+    return Room.databaseBuilder(context, DownloadDatabase::class.java, Constants.DATABASE_NAME).build()
+  }
 
   @Provides
   @Singleton

@@ -8,12 +8,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.app.nikhil.coroutinedownloader.R
 import com.app.nikhil.coroutinedownloader.databinding.ActivityMainBinding
 import com.app.nikhil.coroutinedownloader.downloadutils.DownloadService
-import com.app.nikhil.coroutinedownloader.entity.DownloadItem
 import com.app.nikhil.coroutinedownloader.exceptions.FileExistsException
+import com.app.nikhil.coroutinedownloader.models.DownloadProgress
 import com.app.nikhil.coroutinedownloader.ui.base.BaseActivity
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
-import kotlinx.android.synthetic.main.activity_main.downloadItemsRecycler
+import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import timber.log.Timber
 import javax.inject.Inject
@@ -36,6 +36,13 @@ class MainActivity : BaseActivity<MainViewModel, ActivityMainBinding>() {
     initRecyclerView()
     setupListeners()
     startDownloadService()
+    observeLiveData()
+
+//    viewModel.getAllDownloadInfo()
+  }
+
+  private fun observeLiveData() {
+
   }
 
   private fun startDownloadService() {
@@ -55,7 +62,7 @@ class MainActivity : BaseActivity<MainViewModel, ActivityMainBinding>() {
   }
 
   private fun downloadFile(url: String) {
-    val downloadItem = DownloadItem(fileUtils.getFileName(url), url)
+    val downloadItem = DownloadProgress(url, fileUtils.getFileName(url))
     try {
       viewModel.downloadResourceFromURL(url)
       downloadItemAdapter.addItem(downloadItem)

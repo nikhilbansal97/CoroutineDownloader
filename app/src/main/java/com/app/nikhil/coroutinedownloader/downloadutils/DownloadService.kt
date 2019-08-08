@@ -3,6 +3,7 @@ package com.app.nikhil.coroutinedownloader.downloadutils
 import android.content.Intent
 import com.app.nikhil.coroutinedownloader.utils.NotificationUtils
 import dagger.android.DaggerIntentService
+import timber.log.Timber
 import javax.inject.Inject
 
 class DownloadService : DaggerIntentService("DownloadService") {
@@ -19,6 +20,7 @@ class DownloadService : DaggerIntentService("DownloadService") {
 
   override fun onDestroy() {
     downloader.disposeAll()
+    Timber.d("Service destroyed")
     super.onDestroy()
   }
 }

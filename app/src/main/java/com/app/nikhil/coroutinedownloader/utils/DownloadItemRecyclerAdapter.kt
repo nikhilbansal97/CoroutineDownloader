@@ -8,13 +8,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.app.nikhil.coroutinedownloader.R.layout
 import com.app.nikhil.coroutinedownloader.R.string
 import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
-import com.app.nikhil.coroutinedownloader.entity.DownloadItem
+import com.app.nikhil.coroutinedownloader.models.DownloadProgress
+import com.app.nikhil.coroutinedownloader.models.DownloadState.*
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter.DownloadItemViewHolder
-import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemName
-import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemProgress
-import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemState
-import kotlinx.android.synthetic.main.layout_download_item.view.downloadSizeStatus
-import kotlinx.android.synthetic.main.layout_download_item.view.pauseResumeButton
+import kotlinx.android.synthetic.main.layout_download_item.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,11 +21,12 @@ import timber.log.Timber
 
 @ExperimentalCoroutinesApi
 class DownloadItemRecyclerAdapter(
-  private val downloadItems: ArrayList<DownloadItem>,
+  private val downloadItems: ArrayList<DownloadProgress>,
   private val downloadManager: Downloader
 ) : RecyclerView.Adapter<DownloadItemViewHolder>() {
 
   private val mainScope = CoroutineScope(Dispatchers.Main)
+  private val progressMap: MutableMap<String, DownloadProgress> = mutableMapOf()
 
   override fun onCreateViewHolder(
     parent: ViewGroup,
@@ -50,13 +48,14 @@ class DownloadItemRecyclerAdapter(
     holder.bind(downloadItems[position])
   }
 
-  fun addItem(downloadItem: DownloadItem) {
+  fun addItem(downloadItem: DownloadProgress) {
     downloadItems.add(downloadItem)
+    progressMap[downloadItem.url] = downloadItem
     notifyDataSetChanged()
   }
 
   inner class DownloadItemViewHolder(private val item: View) : RecyclerView.ViewHolder(item) {
-    fun bind(downloadItem: DownloadItem) {
+    fun bind(downloadItem: DownloadProgress) {
       item.downloadItemName.text = downloadItem.fileName
       setPauseResumeListener(downloadItem.url)
       consumeDownloadProgressChannel(downloadItem.url)
@@ -67,19 +66,7 @@ class DownloadItemRecyclerAdapter(
       try {
         mainScope.launch {
           downloadManager.getChannel(url)
-              ?.consumeEach { downloadInfo ->
-                item.downloadItemProgress.text = "${downloadInfo.percentage}%"
-                item.downloadSizeStatus.text =
-                  "${downloadInfo.bytesDownloaded}MB /${downloadInfo.totalBytes}MB"
-                if (downloadInfo.percentage.toDouble() != 100.0) {
-                  item.downloadItemState.text = item.context.getString(string.downloading)
-                } else {
-                  item.downloadItemState.text = item.context.getString(string.completed)
-                  downloadManager.getChannel(url)
-                      ?.close()
-                  item.pauseResumeButton.isEnabled = false
-                }
-              }
+              ?.consumeEach { updateDownloadProgress(it) } ?: Timber.d("Channel is null")
         }
       } catch (e: Exception) {
         Timber.e(e)
@@ -88,16 +75,34 @@ class DownloadItemRecyclerAdapter(
       }
     }
 
+    private fun updateDownloadProgress(downloadProgress: DownloadProgress) {
+      progressMap[downloadProgress.url] = downloadProgress
+      item.downloadItemProgress.text = "${downloadProgress.percentage}%"
+      item.downloadSizeStatus.text =
+        "${downloadProgress.bytesDownloaded}MB / ${downloadProgress.totalBytes}MB"
+      item.downloadItemState.text = downloadProgress.state.toString()
+      if (downloadProgress.state == COMPLETED) {
+        downloadManager.getChannel(downloadProgress.url)
+            ?.close()
+        item.pauseResumeButton.isEnabled = false
+      }
+    }
+
     private fun setPauseResumeListener(url: String) {
       item.pauseResumeButton.setOnClickListener {
         (it as AppCompatButton).let { button ->
-          if (button.text.toString() == it.context.getString(string.pause)) {
-            mainScope.launch { downloadManager.pause(url) }
-            button.text = it.context.getString(string.resume)
-          } else {
-            button.text = it.context.getString(string.pause)
-            downloadManager.download(url)
-            consumeDownloadProgressChannel(url)
+          mainScope.launch {
+            if (button.text.toString() == it.context.getString(string.pause)) {
+              downloadManager.pause(url)
+              progressMap[url]?.state = PAUSED
+              button.text = it.context.getString(string.resume)
+            } else {
+              button.text = it.context.getString(string.pause)
+              downloadManager.download(url)
+              progressMap[url]?.state = DOWNLOADING
+              consumeDownloadProgressChannel(url)
+            }
+            item.downloadItemState.text = progressMap[url]?.state.toString()
           }
         }
       }
