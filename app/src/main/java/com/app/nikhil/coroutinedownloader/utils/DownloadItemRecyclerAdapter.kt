@@ -9,9 +9,13 @@ import com.app.nikhil.coroutinedownloader.R.layout
 import com.app.nikhil.coroutinedownloader.R.string
 import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
 import com.app.nikhil.coroutinedownloader.models.DownloadProgress
-import com.app.nikhil.coroutinedownloader.models.DownloadState.*
+import com.app.nikhil.coroutinedownloader.models.DownloadState.COMPLETED
 import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter.DownloadItemViewHolder
-import kotlinx.android.synthetic.main.layout_download_item.view.*
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemName
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemProgress
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadItemState
+import kotlinx.android.synthetic.main.layout_download_item.view.downloadSizeStatus
+import kotlinx.android.synthetic.main.layout_download_item.view.pauseResumeButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -82,8 +86,6 @@ class DownloadItemRecyclerAdapter(
         "${downloadProgress.bytesDownloaded}MB / ${downloadProgress.totalBytes}MB"
       item.downloadItemState.text = downloadProgress.state.toString()
       if (downloadProgress.state == COMPLETED) {
-        downloadManager.getChannel(downloadProgress.url)
-            ?.close()
         item.pauseResumeButton.isEnabled = false
       }
     }
@@ -92,14 +94,12 @@ class DownloadItemRecyclerAdapter(
       item.pauseResumeButton.setOnClickListener {
         (it as AppCompatButton).let { button ->
           mainScope.launch {
-            if (button.text.toString() == it.context.getString(string.pause)) {
-              downloadManager.pause(url)
-              progressMap[url]?.state = PAUSED
+            if (button.text.toString() == it.context.getString(string.pause) && progressMap[url] != null) {
+              downloadManager.pause(progressMap[url]!!)
               button.text = it.context.getString(string.resume)
             } else {
               button.text = it.context.getString(string.pause)
               downloadManager.download(url)
-              progressMap[url]?.state = DOWNLOADING
               consumeDownloadProgressChannel(url)
             }
             item.downloadItemState.text = progressMap[url]?.state.toString()

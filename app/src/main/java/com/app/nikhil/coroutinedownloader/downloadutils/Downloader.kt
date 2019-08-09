@@ -5,7 +5,7 @@ import kotlinx.coroutines.channels.Channel
 
 interface Downloader {
   suspend fun download(url: String)
-  suspend fun pause(url: String)
+  suspend fun pause(downloadProgress: DownloadProgress)
   fun disposeDownload(url: String)
   fun pauseQueue()
   fun resumeQueue()

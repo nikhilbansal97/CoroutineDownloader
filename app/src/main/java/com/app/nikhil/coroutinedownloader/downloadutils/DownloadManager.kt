@@ -5,6 +5,7 @@ import com.app.nikhil.coroutinedownloader.models.DownloadProgress
 import com.app.nikhil.coroutinedownloader.models.DownloadState
 import com.app.nikhil.coroutinedownloader.models.DownloadState.COMPLETED
 import com.app.nikhil.coroutinedownloader.models.DownloadState.DOWNLOADING
+import com.app.nikhil.coroutinedownloader.models.DownloadState.PAUSED
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,7 +14,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.*
+import okio.BufferedSink
+import okio.BufferedSource
+import okio.appendingSink
+import okio.buffer
+import okio.sink
 import timber.log.Timber
 import java.math.RoundingMode.CEILING
 import java.text.DecimalFormat
@@ -98,11 +103,12 @@ class DownloadManager @Inject constructor(
     }
   }
 
-  override suspend fun pause(url: String) {
-    downloadMap[url]?.let { pair ->
+  override suspend fun pause(downloadProgress: DownloadProgress) {
+    downloadMap[downloadProgress.url]?.let { pair ->
       pair.first.cancel()
 
       while (!pair.first.isCancelled) { }
+      publishUpdates(pair.second, downloadProgress.apply { state = PAUSED })
       pair.second.close()
     }
   }
@@ -168,6 +174,15 @@ class DownloadManager @Inject constructor(
       }
     } catch (e: Exception) {
       Timber.e(e)
+    }
+  }
+
+  private suspend fun publishUpdates(
+    channel: Channel<DownloadProgress>,
+    downloadProgress: DownloadProgress
+  ) {
+    if (!channel.isClosedForSend) {
+      channel.send(downloadProgress)
     }
   }
 
