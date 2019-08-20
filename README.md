@@ -2,6 +2,8 @@
 
 Download Manager written purely in Kotlin. The app uses coroutines and channels to manage the downloading in background and Okio to buffer.
 
+> 🚧 Contains the basic logic to download the file. The app does not use the `DownloadManager` class hence the notifications are broken. Feel free to pick it up 😛
+
 ## Screenshot
 
 <img align="left" src="images/paused.png">
