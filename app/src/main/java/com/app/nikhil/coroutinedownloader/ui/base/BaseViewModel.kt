@@ -9,7 +9,7 @@ import kotlinx.coroutines.cancel
 abstract class BaseViewModel : ViewModel() {
 
     private val viewModelJob = SupervisorJob()
-    val viewModelScope = CoroutineScope(Dispatchers.Main + viewModelJob)
+    val viewModelScope = CoroutineScope(Dispatchers.Default + viewModelJob)
 
     override fun onCleared() {
         viewModelScope.cancel()

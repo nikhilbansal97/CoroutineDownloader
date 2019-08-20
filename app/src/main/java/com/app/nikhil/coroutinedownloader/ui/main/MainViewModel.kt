@@ -3,34 +3,46 @@ package com.app.nikhil.coroutinedownloader.ui.main
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.app.nikhil.coroutinedownloader.database.CentralRepository
-import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
-import com.app.nikhil.coroutinedownloader.models.DownloadProgress
+import com.app.nikhil.coroutinedownloader.models.DownloadItem
 import com.app.nikhil.coroutinedownloader.ui.base.BaseViewModel
-import kotlinx.coroutines.async
+import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 class MainViewModel @Inject constructor(
-  private val downloader: Downloader,
-  private val centralRepository: CentralRepository
+  private val centralRepository: CentralRepository,
+  private val fileUtils: FileUtils
 ) : BaseViewModel() {
 
-  private val _infoListLiveData = MutableLiveData<List<DownloadProgress>>()
-  val progressListLiveData: LiveData<List<DownloadProgress>>
+  private val _infoListLiveData = MutableLiveData<List<DownloadItem>>()
+  val downloadItemsLiveData: LiveData<List<DownloadItem>>
     get() = _infoListLiveData
 
-  fun getAllDownloadInfo() {
+  fun getAllDownloadItems() {
     viewModelScope.launch {
-      val infoList = async { centralRepository.getAllDownloadItemsInfo() }
-      _infoListLiveData.postValue(infoList.await())
+      val infoList = centralRepository.getAllDownloadItems()
+      infoList.forEach {
+        it.fileSize = fileUtils.getFileSize(it.fileName)
+        it.downloadProgress.totalBytes = it.fileSize.toString()
+      }
+      _infoListLiveData.postValue(infoList)
     }
   }
 
-  fun downloadResourceFromURL(url: String) {
-    try {
-      viewModelScope.launch { downloader.download(url) }
-    } catch (e: Exception) {
-      throw e
+  fun saveDownloadItemsProgress(downloadItemList: List<DownloadItem>) {
+    viewModelScope.launch {
+      try {
+        centralRepository.saveAllDownloadItems(downloadItemList)
+      } catch (e: Exception) {
+        Timber.e(e)
+      }
+    }
+  }
+
+  fun saveDownloadItem(item: DownloadItem) {
+    viewModelScope.launch {
+      centralRepository.saveDownloadItem(item)
     }
   }
 }

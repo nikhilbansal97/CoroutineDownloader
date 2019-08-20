@@ -8,6 +8,7 @@ import android.content.Context.NOTIFICATION_SERVICE
 import android.os.Build.VERSION
 import android.os.Build.VERSION_CODES
 import androidx.core.app.NotificationCompat
+import com.app.nikhil.coroutinedownloader.R
 import javax.inject.Inject
 
 class NotificationUtils @Inject constructor(private val context: Context) {
@@ -17,24 +18,42 @@ class NotificationUtils @Inject constructor(private val context: Context) {
     private const val CHANNEL_NAME = "CoroutineDownloader Channel"
   }
 
-  fun createNotification(
-    title: String,
-    text: String
-  ): Notification {
+  private var currentId = 2
+
+  private val manager: NotificationManager by lazy {
+    context.getSystemService(
+        NOTIFICATION_SERVICE
+    ) as NotificationManager
+  }
+
+  private val builder: NotificationCompat.Builder by lazy {
     val builder = NotificationCompat.Builder(context)
-        .setContentTitle(title)
-        .setContentText(text)
+        .setSmallIcon(R.mipmap.ic_launcher)
 
     if (VERSION.SDK_INT >= VERSION_CODES.O) {
-      val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-      notificationManager.createNotificationChannel(
-          NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT)
-      )
       builder.apply {
         setChannelId(CHANNEL_ID)
         setOngoing(true)
       }
     }
+    return@lazy builder
+  }
+
+  fun createNotification(
+    text: String
+  ): Notification {
+    builder.setContentText(text)
+    if (VERSION.SDK_INT >= VERSION_CODES.O) {
+      manager.createNotificationChannel(
+          NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT)
+      )
+    }
     return builder.build()
+  }
+
+  fun getSimpleBuilder(): NotificationCompat.Builder = builder
+
+  fun showNotification(notification: Notification) {
+    manager.notify(currentId++, notification)
   }
 }

@@ -3,20 +3,20 @@ package com.app.nikhil.coroutinedownloader.database
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import com.app.nikhil.coroutinedownloader.models.DownloadProgress
+import com.app.nikhil.coroutinedownloader.models.DownloadItem
 
 @Dao
 interface DatabaseDAO {
 
-  @Query("SELECT * FROM downloadprogress")
-  fun getAll(): List<DownloadProgress>
+  @Query("SELECT * FROM downloaditem")
+  fun getAll(): List<DownloadItem>
 
-  @Query("SELECT * FROM downloadprogress WHERE url = :downloadUrl")
-  fun getItem(downloadUrl: String): DownloadProgress
-
-  @Insert
-  fun insert(downloadProgress: DownloadProgress)
+  @Query("SELECT * FROM downloaditem WHERE url = :downloadUrl")
+  fun getItem(downloadUrl: String): DownloadItem
 
   @Insert
-  fun insertAll(vararg downloadProgress: DownloadProgress)
+  fun insert(downloadItem: DownloadItem)
+
+  @Insert
+  fun insertAll(downloadItemList: List<DownloadItem>)
 }

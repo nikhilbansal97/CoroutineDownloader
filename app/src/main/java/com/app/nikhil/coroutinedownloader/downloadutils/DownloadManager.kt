@@ -1,6 +1,7 @@
 package com.app.nikhil.coroutinedownloader.downloadutils
 
 import com.app.nikhil.coroutinedownloader.exceptions.FileExistsException
+import com.app.nikhil.coroutinedownloader.models.DownloadItem
 import com.app.nikhil.coroutinedownloader.models.DownloadProgress
 import com.app.nikhil.coroutinedownloader.models.DownloadState
 import com.app.nikhil.coroutinedownloader.models.DownloadState.COMPLETED
@@ -8,9 +9,12 @@ import com.app.nikhil.coroutinedownloader.models.DownloadState.DOWNLOADING
 import com.app.nikhil.coroutinedownloader.models.DownloadState.PAUSED
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BroadcastChannel
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -40,13 +44,29 @@ class DownloadManager @Inject constructor(
   private val percentageFormat =
     DecimalFormat(DECIMAL_PERCENT_FORMAT).apply { roundingMode = CEILING }
 
-  private val downloadMap: MutableMap<String, Pair<Job, Channel<DownloadProgress>>> = mutableMapOf()
+  private val downloadMap: MutableMap<String, Pair<Job, BroadcastChannel<DownloadProgress>>> =
+    hashMapOf()
 
   // Pause the Queue when the service is destroyed.
-  override fun pauseQueue() {}
+  override suspend fun pauseQueue() {}
 
   // Resume the Queue when the service is started.
-  override fun resumeQueue() {}
+  override suspend fun resumeQueue() {
+    for (url: String in downloadMap.keys) {
+      download(url)
+    }
+  }
+
+  override fun onProgressChanged(
+    url: String,
+    function: (item: DownloadProgress) -> Unit
+  ) {
+    downloadScope.launch(Dispatchers.Main) {
+      downloadMap[url]?.second?.consumeEach {
+        function(it)
+      }
+    }
+  }
 
   // Dispose the resources occupied by the downloader and cancel all coroutines.
   override fun disposeAll() {}
@@ -56,20 +76,34 @@ class DownloadManager @Inject constructor(
     downloadMap[url]?.second?.close()
   }
 
-  override suspend fun download(url: String) {
+  override fun download(url: String): DownloadItem {
+    // Create the request
     val request = Request.Builder()
         .url(url)
         .build()
 
-    val channel = Channel<DownloadProgress>()
-    val job = downloadScope.launch { suspendedDownload(request, url, channel) }
-    downloadMap[url] = Pair(job, channel)
+    // Create a DownloadItem
+    val downloadItem =
+      DownloadItem(url, fileUtils.getFileName(url)).apply { channel = ConflatedBroadcastChannel() }
+
+    try {
+      /*
+      * Launch a coroutine that will start the download and post the updates
+      * to the channel of the DownloadItem for this Url
+      */
+      val job = downloadScope.launch { suspendedDownload(request, url, downloadItem.channel) }
+      // Create an entry in the in-memory map
+      downloadMap[url] = Pair(job, downloadItem.channel)
+    } catch (e: Exception) {
+      throw e
+    }
+    return downloadItem
   }
 
   private suspend fun suspendedDownload(
     request: Request,
     url: String,
-    channel: Channel<DownloadProgress>
+    channel: BroadcastChannel<DownloadProgress>
   ) {
     try {
       // Create a connection and get the details about the file.
@@ -93,7 +127,7 @@ class DownloadManager @Inject constructor(
         val networkBufferedSource = body.source()
         bufferedRead(
             networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(),
-            body.contentLength(), channel, file.length(), url, file.name
+            body.contentLength(), channel, file.length()
         )
       }
     } catch (e: Exception) {
@@ -103,17 +137,18 @@ class DownloadManager @Inject constructor(
     }
   }
 
-  override suspend fun pause(downloadProgress: DownloadProgress) {
-    downloadMap[downloadProgress.url]?.let { pair ->
+  override suspend fun pause(downloadItem: DownloadItem) {
+    downloadMap[downloadItem.url]?.let { pair ->
       pair.first.cancel()
 
-      while (!pair.first.isCancelled) { }
-      publishUpdates(pair.second, downloadProgress.apply { state = PAUSED })
+      while (!pair.first.isCancelled) {
+      }
+      publishUpdates(pair.second, downloadItem.downloadProgress.apply { this.state = PAUSED })
       pair.second.close()
     }
   }
 
-  override fun getChannel(url: String): Channel<DownloadProgress>? {
+  override fun getChannel(url: String): BroadcastChannel<DownloadProgress>? {
     return downloadMap[url]?.second
   }
 
@@ -125,24 +160,23 @@ class DownloadManager @Inject constructor(
     sink: BufferedSink,
     bufferSize: Long,
     totalBytes: Long,
-    channel: Channel<DownloadProgress>,
-    seek: Long = 0L,
-    url: String,
-    fileName: String
+    channel: BroadcastChannel<DownloadProgress>,
+    seek: Long = 0L
   ) {
     var bytesRead = seek
     try {
+      // Skip the no of bytes already downloaded
       source.skip(seek)
       var noOfBytes = source.read(sink.buffer, bufferSize)
       while (noOfBytes != -1L && coroutineContext[Job]?.isActive == true) {
         bytesRead += noOfBytes
-        publishUpdates(channel, bytesRead, totalBytes, url, fileName, DOWNLOADING)
+        publishUpdates(channel, bytesRead, totalBytes, DOWNLOADING)
         noOfBytes = source.read(sink.buffer, bufferSize)
       }
       if (bytesRead != totalBytes) {
         bytesRead = source.read(sink.buffer, totalBytes - bytesRead)
       }
-      publishUpdates(channel, bytesRead, totalBytes, url, fileName, COMPLETED)
+      publishUpdates(channel, bytesRead, totalBytes, COMPLETED)
     } catch (e: Exception) {
       Timber.e(e)
     } finally {
@@ -152,23 +186,20 @@ class DownloadManager @Inject constructor(
   }
 
   private suspend fun publishUpdates(
-    channel: Channel<DownloadProgress>,
+    channel: BroadcastChannel<DownloadProgress>,
     bytesRead: Long,
     totalBytes: Long,
-    url: String,
-    fileName: String,
     downloadState: DownloadState
   ) {
     try {
       if (!channel.isClosedForSend) {
         channel.send(
             DownloadProgress(
-                url = url,
-                percentage = getPercentage(bytesRead, totalBytes),
                 bytesDownloaded = convertBytesToMB(bytesRead),
+                percentageDisplay = getDisplayPercentage(bytesRead, totalBytes),
+                percentage = getPercentage(bytesRead, totalBytes),
                 totalBytes = convertBytesToMB(totalBytes),
-                state = downloadState,
-                fileName = fileName
+                state = downloadState
             )
         )
       }
@@ -178,7 +209,7 @@ class DownloadManager @Inject constructor(
   }
 
   private suspend fun publishUpdates(
-    channel: Channel<DownloadProgress>,
+    channel: BroadcastChannel<DownloadProgress>,
     downloadProgress: DownloadProgress
   ) {
     if (!channel.isClosedForSend) {
@@ -186,10 +217,15 @@ class DownloadManager @Inject constructor(
     }
   }
 
-  private fun getPercentage(
+  private fun getDisplayPercentage(
     bytesRead: Long,
     totalBytes: Long
   ): String = percentageFormat.format((bytesRead.toDouble() / totalBytes.toDouble()) * 100)
+
+  private fun getPercentage(
+    bytesRead: Long,
+    totalBytes: Long
+  ): Int = ((bytesRead.toDouble() / totalBytes.toDouble()) * 100).toInt()
 
   private fun convertBytesToMB(bytes: Long): String =
     percentageFormat.format(bytes * MEGA_BYTES_MULTIPLIER)

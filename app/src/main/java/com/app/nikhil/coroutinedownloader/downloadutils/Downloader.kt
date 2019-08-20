@@ -1,14 +1,16 @@
 package com.app.nikhil.coroutinedownloader.downloadutils
 
+import com.app.nikhil.coroutinedownloader.models.DownloadItem
 import com.app.nikhil.coroutinedownloader.models.DownloadProgress
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BroadcastChannel
 
 interface Downloader {
-  suspend fun download(url: String)
-  suspend fun pause(downloadProgress: DownloadProgress)
+  suspend fun pause(downloadItem: DownloadItem)
+  suspend fun resumeQueue()
+  suspend fun pauseQueue()
+  fun download(url: String): DownloadItem
+  fun onProgressChanged(url: String, function: (item: DownloadProgress) -> Unit)
   fun disposeDownload(url: String)
-  fun pauseQueue()
-  fun resumeQueue()
   fun disposeAll()
-  fun getChannel(url: String): Channel<DownloadProgress>?
+  fun getChannel(url: String): BroadcastChannel<DownloadProgress>?
 }

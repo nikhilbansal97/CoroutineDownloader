@@ -7,7 +7,6 @@ import com.app.nikhil.coroutinedownloader.downloadutils.DownloadManager
 import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
 import com.app.nikhil.coroutinedownloader.injection.qualifier.IOScope
 import com.app.nikhil.coroutinedownloader.utils.Constants
-import com.app.nikhil.coroutinedownloader.utils.DownloadItemRecyclerAdapter
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
 import com.app.nikhil.coroutinedownloader.utils.NotificationUtils
 import dagger.Module
@@ -32,12 +31,6 @@ class AppModule {
   @Singleton
   fun provideDatabase(context: Context): DownloadDatabase {
     return Room.databaseBuilder(context, DownloadDatabase::class.java, Constants.DATABASE_NAME).build()
-  }
-
-  @Provides
-  @Singleton
-  fun provideDownloadRecyclerAdapter(downloader: Downloader): DownloadItemRecyclerAdapter {
-    return DownloadItemRecyclerAdapter(arrayListOf(), downloader)
   }
 
   @Provides
