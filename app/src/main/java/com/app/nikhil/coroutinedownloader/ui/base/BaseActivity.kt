@@ -9,7 +9,6 @@ import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.databinding.library.baseAdapters.BR
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProviders
 import com.app.nikhil.coroutinedownloader.utils.Constants.REQUEST_CODE_EXTERNAL_PERMISSIONS
 import dagger.android.AndroidInjection
 import dagger.android.support.DaggerAppCompatActivity
@@ -36,7 +35,7 @@ abstract class BaseActivity<VM : BaseViewModel, B: ViewDataBinding> : DaggerAppC
   }
 
   private fun initUI() {
-    viewModel = ViewModelProviders.of(this, viewModelFactory).get(getViewModelClass())
+    viewModel = ViewModelProvider(this, viewModelFactory).get(getViewModelClass())
     binding = DataBindingUtil.setContentView(this, getLayoutId())
     binding.setVariable(BR.viewModel, viewModel)
   }
