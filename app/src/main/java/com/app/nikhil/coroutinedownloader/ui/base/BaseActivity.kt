@@ -8,13 +8,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.databinding.library.baseAdapters.BR
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.app.nikhil.coroutinedownloader.utils.Constants.REQUEST_CODE_EXTERNAL_PERMISSIONS
 import dagger.android.AndroidInjection
 import dagger.android.support.DaggerAppCompatActivity
 import javax.inject.Inject
 
-abstract class BaseActivity<VM : BaseViewModel, B: ViewDataBinding> : DaggerAppCompatActivity() {
+abstract class BaseActivity<VM : ViewModel, B: ViewDataBinding> : DaggerAppCompatActivity() {
 
   abstract fun getLayoutId(): Int
 
