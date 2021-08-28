@@ -49,7 +49,8 @@ ext {
           "daggerAndroid"         : "com.google.dagger:dagger-android:$DAGGER_VERSION",
           "daggerSupport"         : "com.google.dagger:dagger-android-support:$DAGGER_VERSION",
           "daggerAndroidProcessor": "com.google.dagger:dagger-android-processor:$DAGGER_VERSION",
-          "daggerProcessor"       : "com.google.dagger:dagger-compiler:$DAGGER_VERSION"
+          "daggerProcessor"       : "com.google.dagger:dagger-compiler:$DAGGER_VERSION",
+          "gson"                  : "com.google.code.gson:gson:2.8.7"
   ]
 
   testDeps = [

@@ -43,6 +43,7 @@ dependencies {
   implementation coreDeps.okio
   implementation coreDeps.okhttp
   implementation coreDeps.timber
+  implementation coreDeps.gson
 
   implementation coreDeps.coroutineCore
   implementation coreDeps.coroutineAndroid

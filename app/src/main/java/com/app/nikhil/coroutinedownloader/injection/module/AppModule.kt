@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.app.nikhil.coroutinedownloader.database.DownloadDatabase
 import com.app.nikhil.coroutinedownloader.downloadutils.DownloadManager
-import com.app.nikhil.coroutinedownloader.downloadutils.Downloader
+import com.app.nikhil.coroutinedownloader.downloadutils.DownloadManagerImpl
 import com.app.nikhil.coroutinedownloader.injection.qualifier.IOScope
 import com.app.nikhil.coroutinedownloader.utils.Constants
 import com.app.nikhil.coroutinedownloader.utils.FileUtils
@@ -45,7 +45,7 @@ class AppModule {
     okHttpClient: OkHttpClient,
     fileUtils: FileUtils,
     @IOScope scope: CoroutineScope
-  ): Downloader = DownloadManager(okHttpClient, fileUtils, scope)
+  ): DownloadManager = DownloadManagerImpl(okHttpClient, fileUtils, scope)
 
   @Provides
   @IOScope

@@ -5,7 +5,6 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.app.nikhil.coroutinedownloader.models.DownloadItem
 import com.app.nikhil.coroutinedownloader.utils.Constants
-import com.app.nikhil.coroutinedownloader.utils.Converters
 
 @Database(
     entities = [DownloadItem::class], version = Constants.DATABASE_VERSION, exportSchema = false

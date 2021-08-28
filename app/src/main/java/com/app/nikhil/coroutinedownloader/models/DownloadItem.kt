@@ -3,26 +3,15 @@ package com.app.nikhil.coroutinedownloader.models
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import kotlinx.coroutines.channels.BroadcastChannel
 import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 
-@Entity
-class DownloadItem(
+@Entity(tableName = "DownloadItemsTable")
+data class DownloadItem(
   @PrimaryKey
   val url: String,
   val fileName: String,
-  var fileSize: Long = 0
+  var downloadProgress: DownloadProgress = DownloadProgress.EMPTY
 ) {
   @Ignore
-  var downloadProgress: DownloadProgress = DownloadProgress()
-  @Ignore
-  var channel: BroadcastChannel<DownloadProgress> = ConflatedBroadcastChannel()
+  lateinit var channel: ConflatedBroadcastChannel<DownloadProgress>
 }
-
-class DownloadProgress(
-  var bytesDownloaded: String = "",
-  var percentage: Int = 0,
-  var percentageDisplay: String = "",
-  var totalBytes: String = "",
-  var state: DownloadState = DownloadState.PENDING
-)

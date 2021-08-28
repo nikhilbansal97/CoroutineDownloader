@@ -17,7 +17,6 @@ class DownloadService : DaggerService() {
 
   private val serviceScope by lazy { CoroutineScope(Dispatchers.IO) }
   private val mainScope by lazy { CoroutineScope(Dispatchers.Main) }
-  private val binder by lazy { DownloadServiceBinder() }
 
   companion object {
     private const val MAX_PROGRESS = 100
@@ -26,7 +25,7 @@ class DownloadService : DaggerService() {
   }
 
   @Inject
-  lateinit var downloader: Downloader
+  lateinit var downloadManager: DownloadManager
   @Inject
   lateinit var notificationUtils: NotificationUtils
 
@@ -43,15 +42,10 @@ class DownloadService : DaggerService() {
     return super.onStartCommand(intent, flags, startId)
   }
 
-  /*
-  * Allow the component to bind to the service
-  */
-  override fun onBind(p0: Intent?): IBinder {
-    return binder
-  }
+  override fun onBind(p0: Intent?): IBinder? = null
 
   fun download(url: String): DownloadItem {
-    val downloadItem = downloader.download(url)
+    val downloadItem = downloadManager.download(url)
     val receiveChannel = downloadItem.channel.openSubscription()
     mainScope.launch {
       receiveChannel.consumeEach {
@@ -73,7 +67,7 @@ class DownloadService : DaggerService() {
   }
 
   override fun onDestroy() {
-    downloader.disposeAll()
+    downloadManager.disposeAll()
     serviceScope.cancel()
     super.onDestroy()
   }

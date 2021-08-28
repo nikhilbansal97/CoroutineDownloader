@@ -44,13 +44,12 @@
       android:layout_marginTop="@dimen/dimen_6dp"
       tools:text="@string/completed"/>
 
-  <androidx.appcompat.widget.AppCompatButton
+  <com.google.android.material.button.MaterialButton
       android:id="@+id/pauseResumeButton"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       app:layout_constraintEnd_toEndOf="parent"
       app:layout_constraintTop_toTopOf="@id/downloadItemName"
-      style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
       app:layout_constraintBottom_toBottomOf="@id/downloadItemState"
       android:layout_marginEnd="@dimen/dimen_12dp"
       android:text="@string/pause"/>
