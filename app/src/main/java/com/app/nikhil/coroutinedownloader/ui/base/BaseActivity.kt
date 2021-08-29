@@ -46,17 +46,23 @@ abstract class BaseActivity<VM : ViewModel, B : ViewDataBinding> : DaggerAppComp
   }
 
   private fun requestStoragePermission() {
-    if (VERSION.SDK_INT >= VERSION_CODES.M) {
-      requestPermissions(
-        arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
-        REQUEST_CODE_EXTERNAL_PERMISSIONS
-      )
-    } else {
-      ActivityCompat.requestPermissions(
-        this,
-        arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
-        REQUEST_CODE_EXTERNAL_PERMISSIONS
-      )
+    /**
+     * Request for storage permissions only if app is running on Android 9 or lower.
+     * Starting Android 10, app doesn't need permission to add files to storage which were created by app.
+     */
+    if (VERSION.SDK_INT < VERSION_CODES.Q) {
+      if (VERSION.SDK_INT >= VERSION_CODES.M) {
+        requestPermissions(
+          arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+          REQUEST_CODE_EXTERNAL_PERMISSIONS
+        )
+      } else {
+        ActivityCompat.requestPermissions(
+          this,
+          arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE),
+          REQUEST_CODE_EXTERNAL_PERMISSIONS
+        )
+      }
     }
   }
 
