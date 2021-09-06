@@ -1,7 +1,7 @@
 package com.app.nikhil.coroutinedownloader.downloadutils
 
+import android.net.Uri
 import com.app.nikhil.coroutinedownloader.exceptions.FileAlreadyDownloadingException
-import com.app.nikhil.coroutinedownloader.exceptions.FileExistsException
 import com.app.nikhil.coroutinedownloader.models.DownloadItem
 import com.app.nikhil.coroutinedownloader.models.DownloadProgress
 import com.app.nikhil.coroutinedownloader.models.DownloadState
@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.*
 import timber.log.Timber
+import java.io.File
 import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
@@ -46,10 +47,17 @@ class DownloadManagerImpl @Inject constructor(
     function: (item: DownloadProgress) -> Unit
   ) {
     downloadScope.launch(Dispatchers.IO) {
-      downloadMap[url]?.second?.consumeEach {
-        function(it)
+      downloadMap[url]?.second?.consumeEach { progress ->
+        function(progress)
+        if (progress.percentage == 100) {
+          onDownloadCompleted(progress.uri)
+        }
       }
     }
+  }
+
+  private fun onDownloadCompleted(uri: String) {
+    fileUtils.downloadCompleted(uri)
   }
 
   // Dispose the resources occupied by the downloader and cancel all coroutines.
@@ -100,24 +108,36 @@ class DownloadManagerImpl @Inject constructor(
       val response = okHttpClient.newCall(request)
         .execute()
       // Get the file object for the file to be downloaded.
-      val file = fileUtils.getFile(url)
+      val uri = fileUtils.getFileUri(url, response.header("Content-Type"))
+      if (uri?.toString().isNullOrEmpty()) {
+        Timber.e("uri is null, item was not added to MediaStore!")
+        return
+      }
       // If the body of response is not empty
       response.body?.let { body ->
-        if (file.exists() && file.length() == body.contentLength()) {
-          throw FileExistsException()
-        }
+        val file: File? = getFileIfExists(uri)
         // Create a buffered output stream (BufferedSink) for the file.
-        val fileBufferedSink: BufferedSink = withContext(Dispatchers.IO) {
-          when {
-            file.length() != 0L -> file.appendingSink().buffer()
-            else -> file.sink().buffer()
+        val fileBufferedSink: BufferedSink? = when {
+          file != null -> {
+            // File exists
+            return withContext(Dispatchers.IO) {
+              when {
+                file.length() != 0L -> file.appendingSink().buffer()
+                else -> file.sink().buffer()
+              }
+            }
           }
+          else -> fileUtils.getNewBufferedSink(uri!!)
         }
         // Get the buffered input stream (BufferedStream) for the file.
+        if (fileBufferedSink == null) {
+          Timber.e("Unable to write to file!")
+          return
+        }
         val networkBufferedSource = body.source()
         bufferedRead(
           networkBufferedSource, fileBufferedSink, DEFAULT_BUFFER_SIZE.toLong(),
-          body.contentLength(), channel, file.length()
+          body.contentLength(), channel, file?.length() ?: 0L, uri
         )
       }
     } catch (e: Exception) {
@@ -125,6 +145,18 @@ class DownloadManagerImpl @Inject constructor(
     } finally {
       disposeDownload(url)
     }
+  }
+
+  private fun getFileIfExists(uri: Uri?): File? {
+    var file: File? = null
+    try {
+      file = File(uri.toString())
+      file.sink().close()
+    } catch (e: Exception) {
+      // The file doesn't exist
+      file = null
+    }
+    return file
   }
 
   private fun alreadyDownloading(url: String): Boolean {
@@ -154,7 +186,8 @@ class DownloadManagerImpl @Inject constructor(
     bufferSize: Long,
     totalBytes: Long,
     channel: BroadcastChannel<DownloadProgress>,
-    seek: Long = 0L
+    seek: Long = 0L,
+    uri: Uri
   ) {
     var bytesRead = seek
     try {
@@ -163,13 +196,13 @@ class DownloadManagerImpl @Inject constructor(
       var noOfBytes = source.read(sink.buffer, bufferSize)
       while (noOfBytes != -1L && coroutineContext[Job]?.isActive == true) {
         bytesRead += noOfBytes
-        publishUpdates(channel, bytesRead, totalBytes, DOWNLOADING)
+        publishUpdates(channel, bytesRead, totalBytes, DOWNLOADING, uri)
         noOfBytes = source.read(sink.buffer, bufferSize)
       }
       if (bytesRead != totalBytes) {
         bytesRead = source.read(sink.buffer, totalBytes - bytesRead)
       }
-      publishUpdates(channel, bytesRead, totalBytes, COMPLETED)
+      publishUpdates(channel, bytesRead, totalBytes, COMPLETED, uri)
     } catch (e: Exception) {
       Timber.e(e)
     } finally {
@@ -182,7 +215,8 @@ class DownloadManagerImpl @Inject constructor(
     channel: BroadcastChannel<DownloadProgress>,
     bytesRead: Long,
     totalBytes: Long,
-    downloadState: DownloadState
+    downloadState: DownloadState,
+    uri: Uri
   ) {
     try {
       if (!channel.isClosedForSend) {
@@ -194,7 +228,8 @@ class DownloadManagerImpl @Inject constructor(
             totalMegaBytes = convertBytesToMB(totalBytes),
             bytesDownloaded = bytesRead,
             totalBytes = totalBytes,
-            state = downloadState
+            state = downloadState,
+            uri = uri.toString()
           )
         )
       }

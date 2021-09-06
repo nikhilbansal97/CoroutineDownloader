@@ -1,5 +1,7 @@
 package com.app.nikhil.coroutinedownloader.models
 
+import android.net.Uri
+
 data class DownloadProgress(
   var megaBytesDownloaded: String,
   var percentage: Int,
@@ -7,7 +9,8 @@ data class DownloadProgress(
   var totalMegaBytes: String,
   var bytesDownloaded: Long,
   var totalBytes: Long,
-  var state: DownloadState
+  var state: DownloadState,
+  var uri: String
 ) {
   companion object {
     val EMPTY: DownloadProgress
@@ -18,7 +21,8 @@ data class DownloadProgress(
         totalMegaBytes = "0",
         bytesDownloaded = 0L,
         totalBytes = 0L,
-        state = DownloadState.PENDING
+        state = DownloadState.PENDING,
+        uri = Uri.EMPTY.toString()
       )
   }
 }
